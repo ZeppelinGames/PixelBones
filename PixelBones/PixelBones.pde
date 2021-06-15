@@ -1,3 +1,7 @@
+import java.util.Map;
+
+HashMap<PVector, Integer> allPixels = new HashMap<PVector, Integer>();
+
 color currDrawColor = color(0);
 int scaling = 32;
 PVector scaleBounds = new PVector(8, 128); //Min, max
@@ -21,6 +25,8 @@ void draw() {
     //Change colours
     //Pick brushes
     //Draw on canvas
+    PlotPixel();
+    DrawPixels();
     //Swap layers
     break;
   case RIGGING:
@@ -51,8 +57,31 @@ void DrawGrid(int gridScale) {
   }
 }
 
-void DrawPixel() {
+void PlotPixel() {
   if (mousePressed) {
+    if (mouseButton == LEFT) {
+      PVector pixelPos = new PVector(mouseX / scaling, mouseY / scaling);
+      if (!allPixels.containsKey(pixelPos)) {
+        //If pixel doesnt exist at location, add one
+        allPixels.put(pixelPos, currDrawColor);
+      } else {
+        //Pixel does exist at location
+        //See if colour is different
+        if (currDrawColor != allPixels.get(pixelPos)) {
+          //Colour is different. Update pixel color
+          allPixels.replace(pixelPos, currDrawColor);
+        }
+      }
+    }
+  }
+}
+
+void DrawPixels() {
+  noStroke();
+  for (Map.Entry<PVector, Integer> p : allPixels.entrySet()) {
+    PVector drawPos = new PVector(p.getKey().x * scaling, p.getKey().y * scaling);
+    fill(p.getValue());
+    square(drawPos.x, drawPos.y, scaling);
   }
 }
 
