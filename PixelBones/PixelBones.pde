@@ -1,3 +1,7 @@
+color currDrawColor = color(0);
+int scaling = 32;
+PVector scaleBounds = new PVector(8, 128); //Min, max
+
 Mode currMode = Mode.DRAWING;
 enum Mode {
   DRAWING, RIGGING, POSING
@@ -10,7 +14,7 @@ void setup() {
 
 void draw() {
   background(0);
-  DrawGrid(32);
+  DrawGrid(scaling);
 
   switch(currMode) {
   case DRAWING:
@@ -39,10 +43,25 @@ void DrawGrid(int gridScale) {
     for (int y =0; y < height; y += gridScale) {
       boolean xGrid = (x/gridScale) % 2 == 0;
       boolean yGrid = (y/gridScale) % 2 == 0;
-      
+
       fill(xGrid != yGrid ? gridCol : gridColAlt);
 
       square(x, y, gridScale);
     }
   }
+}
+
+void DrawPixel() {
+  if (mousePressed) {
+  }
+}
+
+void mouseWheel(MouseEvent event) {
+  float e  = event.getCount();
+
+  scaling += (e * 8); 
+  scaling  = scaling < int(scaleBounds.x) ? int(scaleBounds.x) : scaling;
+  scaling = scaling > int(scaleBounds.y) ? int(scaleBounds.y) : scaling;
+
+  println(scaling);
 }
