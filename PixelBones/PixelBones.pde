@@ -1,7 +1,7 @@
 import java.util.Map;
 
 HashMap<PVector, Integer> allPixels = new HashMap<PVector, Integer>();
-PVector artSize = new PVector(64,64);
+PVector artSize = new PVector(64, 64);
 color currDrawColour = color(0);
 
 PVector cameraPos = new PVector(0, 0);
@@ -35,6 +35,7 @@ void draw() {
     square(width-50, height-50, 25);
 
     PlotPixel();
+    RemovePixel();
     DrawPixels();
     //Swap layers
     break;
@@ -80,6 +81,17 @@ void PlotPixel() {
           //Colour is different. Update pixel color
           allPixels.replace(pixelPos, currDrawColour);
         }
+      }
+    }
+  }
+}
+
+void RemovePixel() {
+  if (mousePressed) {
+    if (mouseButton == RIGHT) {
+      PVector pixelPos = new PVector(int((mouseX - cameraPos.x) / scaling), int((mouseY - cameraPos.y) / scaling));
+      if (allPixels.containsKey(pixelPos)) {
+        allPixels.remove(pixelPos);
       }
     }
   }
