@@ -1,7 +1,7 @@
 import java.util.Map;
 
 HashMap<PVector, Integer> allPixels = new HashMap<PVector, Integer>();
-PVector artSize = new PVector(64, 64);
+PVector artSize = new PVector(16, 16);
 color currDrawColour = color(0);
 
 PVector cameraPos = new PVector(0, 0);
@@ -55,8 +55,8 @@ void DrawGrid(int gridScale) {
   color gridCol = color(110);
   color gridColAlt = color(127);
 
-  for (int x =0; x < (width*scaling) / artSize.x; x+= gridScale) {
-    for (int y =0; y < (height*scaling) / artSize.y; y += gridScale) {
+  for (int x =0; x < artSize.x * scaling; x+= gridScale) {
+    for (int y =0; y <  artSize.y * scaling; y += gridScale) {
       boolean xGrid = (x/gridScale) % 2 == 0;
       boolean yGrid = (y/gridScale) % 2 == 0;
 
