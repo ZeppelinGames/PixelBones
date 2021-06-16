@@ -9,14 +9,29 @@ PVector cameraPos = new PVector(0, 0);
 int scaling = 32;
 PVector scaleBounds = new PVector(8, 128); //Min, max
 
+ArrayList<UI> ui = new ArrayList<UI>();
+
+//Colour buttons - UI
+ColourButton[] colourButtons = new ColourButton[] {
+  new ColourButton(new Rect(new PVector(25, 25), new PVector(25, 25)), color(0)), 
+  new ColourButton(new Rect(new PVector(75, 25), new PVector(25, 25)), color(255)), 
+  new ColourButton(new Rect(new PVector(125, 25), new PVector(25, 25)), color(255, 0, 0)), 
+  new ColourButton(new Rect(new PVector(175, 25), new PVector(25, 25)), color(0, 255, 0)), 
+  new ColourButton(new Rect(new PVector(225, 25), new PVector(25, 25)), color(0, 0, 255))
+};
+
 Mode currMode = Mode.DRAWING;
 enum Mode {
   DRAWING, RIGGING, POSING
 }
 
 void setup() {
-  size(1024, 1024);
+  size(800, 800);
   surface.setTitle("PixelBones");
+
+  for (ColourButton cb : colourButtons) {
+    ui.add(cb);
+  }
 }
 
 void draw() {
@@ -28,15 +43,12 @@ void draw() {
     //Change colours
     //Pick brushes
     //Draw on canvas
-    strokeWeight(2);
-    stroke(255);
-
-    fill(currDrawColour);
-    square(width-50, height-50, 25);
 
     PlotPixel();
     RemovePixel();
     DrawPixels();
+
+    UpdateButtons();
     //Swap layers
     break;
   case RIGGING:
@@ -67,19 +79,47 @@ void DrawGrid(int gridScale) {
   }
 }
 
+void UpdateButtons() {
+  strokeWeight(2);
+  stroke(255);
+
+  fill(currDrawColour);
+  square(width-50, height-50, 25);
+
+  for (ColourButton cb : colourButtons) {
+    fill(cb.buttonCol);
+    rect(cb.rect.position.x, cb.rect.position.y, cb.rect.scale.x, cb.rect.scale.y);
+
+    if (mousePressed) {
+      if (mouseButton == LEFT) {
+        if (cb.rect.mouseOver()) {
+          currDrawColour = cb.buttonCol;
+        }
+      }
+    }
+  }
+}
+
 void PlotPixel() {
   if (mousePressed) {
     if (mouseButton == LEFT) {
-      PVector pixelPos = new PVector(int((mouseX - cameraPos.x) / scaling), int((mouseY - cameraPos.y) / scaling));
-      if (!allPixels.containsKey(pixelPos)) {
-        //If pixel doesnt exist at location, add one
-        allPixels.put(pixelPos, currDrawColour);
-      } else {
-        //Pixel does exist at location
-        //See if colour is different
-        if (currDrawColour != allPixels.get(pixelPos)) {
-          //Colour is different. Update pixel color
-          allPixels.replace(pixelPos, currDrawColour);
+      if (!OverUIElements(ui.toArray(new UI[ui.size()]))) {
+        PVector pixelPos = new PVector(int((mouseX - cameraPos.x) / scaling), int((mouseY - cameraPos.y) / scaling));
+
+        if (pixelPos.x >= 0 && pixelPos.y >= 0) { 
+          if (pixelPos.x < artSize.x && pixelPos.y < artSize.y) {
+            if (!allPixels.containsKey(pixelPos)) {
+              //If pixel doesnt exist at location, add one
+              allPixels.put(pixelPos, currDrawColour);
+            } else {
+              //Pixel does exist at location
+              //See if colour is different
+              if (currDrawColour != allPixels.get(pixelPos)) {
+                //Colour is different. Update pixel color
+                allPixels.replace(pixelPos, currDrawColour);
+              }
+            }
+          }
         }
       }
     }
@@ -104,6 +144,16 @@ void DrawPixels() {
     fill(p.getValue());
     square(drawPos.x + cameraPos.x, drawPos.y + cameraPos.y, scaling);
   }
+}
+
+boolean OverUIElements(UI[] uiElements) {
+  boolean over = false;
+  for (UI ui : uiElements) {
+    if (ui.OverUI()) {
+      over = true;
+    }
+  }
+  return over;
 }
 
 PVector lastDragPos = new PVector(0, 0);
@@ -138,4 +188,49 @@ void mouseWheel(MouseEvent event) {
   scaling = scaling > int(scaleBounds.y) ? int(scaleBounds.y) : scaling;
 
   println(scaling);
+}
+
+public class Rect {
+  PVector position;
+  PVector scale;
+
+  public Rect(PVector pos, PVector scl) {
+    this.position = pos;
+    this.scale = scl;
+  }
+
+  public boolean mouseOver() {
+    if (mouseX > position.x && mouseX < position.x + scale.x) {
+      if (mouseY > position.y && mouseY < position.y  +scale.y) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+public interface UI 
+{
+  boolean OverUI();
+}
+
+public class ColourButton implements UI {
+  Rect rect;
+  color buttonCol;
+
+  public ColourButton(Rect rect, color buttonCol) 
+  {
+    this.rect = rect;
+    this.buttonCol = buttonCol;
+  }
+
+  public boolean OverUI() {
+    boolean over = false;
+    if (mouseX < rect.position.x + rect.scale.x && mouseX > rect.position.x) {
+      if (mouseY < rect.position.y + rect.scale.y && mouseY > rect.position.y) {
+        over = true;
+      }
+    }
+    return over;
+  }
 }
