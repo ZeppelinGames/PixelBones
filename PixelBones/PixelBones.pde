@@ -262,6 +262,15 @@ public class ColourButton extends UI {
 
   public void onClick() {
     println("Clicked Colour Button");
+    UI[] colourPickers = getUIType(ColourPicker.class);
+    for (UI cpUI : colourPickers) {
+      ColourPicker cp = (ColourPicker)cpUI;
+      if (cp.open) {
+        cp.Close();
+      } else {
+        cp.Open();
+      }
+    }
   }
 
   public void drawUIElement() {
@@ -282,10 +291,17 @@ public class ColourPicker extends UI {
 
   public void onClick() {
     println("Clicked colour picker");
-    SetDrawColour(get(mouseX, mouseY));
+    color newCol = get(mouseX, mouseY);
+    SetDrawColour(newCol);
+    UI[] colourButtons = getUIType(ColourButton.class);
+    for (UI cbUI : colourButtons) {
+      ColourButton cb = (ColourButton)cbUI;
+      cb.buttonCol = newCol;
+    }
   }
 
   public void Open() {
+    open = true;
     drawUIElement();
   }
   public void Close() {
@@ -293,9 +309,7 @@ public class ColourPicker extends UI {
   }
 
   public void drawUIElement() {
-    if (!open) {
-      open = true;
-
+    if (open) {
       stroke(255);
       strokeWeight(2);
       fill(0);
