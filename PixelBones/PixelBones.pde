@@ -9,15 +9,9 @@ PVector cameraPos = new PVector(0, 0);
 int scaling = 32;
 PVector scaleBounds = new PVector(8, 128); //Min, max
 
-ArrayList<UI> ui = new ArrayList<UI>();
-
-//Colour buttons - UI
-ColourButton[] colourButtons = new ColourButton[] {
+UI ui[] = new UI[] {
   new ColourButton(new Rect(new PVector(25, 25), new PVector(25, 25)), color(0)), 
-  new ColourButton(new Rect(new PVector(75, 25), new PVector(25, 25)), color(255)), 
-  new ColourButton(new Rect(new PVector(125, 25), new PVector(25, 25)), color(255, 0, 0)), 
-  new ColourButton(new Rect(new PVector(175, 25), new PVector(25, 25)), color(0, 255, 0)), 
-  new ColourButton(new Rect(new PVector(225, 25), new PVector(25, 25)), color(0, 0, 255))
+  new ColourPicker(new Rect(new PVector(50, 50), new PVector(100, 100)))
 };
 
 Mode currMode = Mode.DRAWING;
@@ -28,10 +22,6 @@ enum Mode {
 void setup() {
   size(800, 800);
   surface.setTitle("PixelBones");
-
-  for (ColourButton cb : colourButtons) {
-    ui.add(cb);
-  }
 }
 
 void draw() {
@@ -47,8 +37,8 @@ void draw() {
     PlotPixel();
     RemovePixel();
     DrawPixels();
+    UpdateUI();
 
-    UpdateButtons();
     //Swap layers
     break;
   case RIGGING:
@@ -79,21 +69,18 @@ void DrawGrid(int gridScale) {
   }
 }
 
-void UpdateButtons() {
+void UpdateUI() {
   strokeWeight(2);
   stroke(255);
 
-  fill(currDrawColour);
-  square(width-50, height-50, 25);
-
-  for (ColourButton cb : colourButtons) {
-    fill(cb.buttonCol);
-    rect(cb.rect.position.x, cb.rect.position.y, cb.rect.scale.x, cb.rect.scale.y);
+  for (UI uiElement : ui) {
+    fill(color(0));
+    rect(uiElement.rect.position.x, uiElement.rect.position.y, uiElement.rect.scale.x, uiElement.rect.scale.y);
 
     if (mousePressed) {
       if (mouseButton == LEFT) {
-        if (cb.rect.mouseOver()) {
-          currDrawColour = cb.buttonCol;
+        if (uiElement.rect.mouseOver()) {
+          uiElement.OnClick();
         }
       }
     }
@@ -103,7 +90,7 @@ void UpdateButtons() {
 void PlotPixel() {
   if (mousePressed) {
     if (mouseButton == LEFT) {
-      if (!OverUIElements(ui.toArray(new UI[ui.size()]))) {
+      if (!OverUIElements(ui)) {
         PVector pixelPos = new PVector(int((mouseX - cameraPos.x) / scaling), int((mouseY - cameraPos.y) / scaling));
 
         if (pixelPos.x >= 0 && pixelPos.y >= 0) { 
@@ -194,6 +181,11 @@ public class Rect {
   PVector position;
   PVector scale;
 
+  public Rect() {
+    this.position = new PVector(0, 0);
+    this.scale = new PVector(1, 1);
+  }
+
   public Rect(PVector pos, PVector scl) {
     this.position = pos;
     this.scale = scl;
@@ -209,20 +201,9 @@ public class Rect {
   }
 }
 
-public interface UI 
+public class UI 
 {
-  boolean OverUI();
-}
-
-public class ColourButton implements UI {
   Rect rect;
-  color buttonCol;
-
-  public ColourButton(Rect rect, color buttonCol) 
-  {
-    this.rect = rect;
-    this.buttonCol = buttonCol;
-  }
 
   public boolean OverUI() {
     boolean over = false;
@@ -232,5 +213,29 @@ public class ColourButton implements UI {
       }
     }
     return over;
+  }
+
+  public void OnClick() {
+  }
+}
+
+public class ColourButton extends UI {
+  color buttonCol;
+
+  public ColourButton(Rect rect, color buttonCol) 
+  {
+    this.rect = rect;
+    this.buttonCol = buttonCol;
+  }
+
+  public  void OnClick() {
+    println("CLICKED");
+  }
+}
+
+public class ColourPicker extends UI {
+  public ColourPicker(Rect rect) 
+  {
+    this.rect = rect;
   }
 }
