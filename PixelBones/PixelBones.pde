@@ -11,7 +11,7 @@ PVector scaleBounds = new PVector(8, 128); //Min, max
 
 UI ui[] = new UI[] {
   new ColourButton(new Rect(new PVector(25, 25), new PVector(25, 25)), color(0)), 
-  new ColourPicker(new Rect(new PVector(50, 50), new PVector(100, 100)))
+  new ColourPicker(new Rect(new PVector(50, 50), new PVector(250, 250)))
 };
 
 Mode currMode = Mode.DRAWING;
@@ -70,19 +70,11 @@ void DrawGrid(int gridScale) {
 }
 
 void UpdateUI() {
-  strokeWeight(2);
-  stroke(255);
-
   for (UI uiElement : ui) {
-    fill(color(0));
-    rect(uiElement.rect.position.x, uiElement.rect.position.y, uiElement.rect.scale.x, uiElement.rect.scale.y);
+    uiElement.drawUIElement();
 
-    if (mousePressed) {
-      if (mouseButton == LEFT) {
-        if (uiElement.rect.mouseOver()) {
-          uiElement.OnClick();
-        }
-      }
+    if (uiElement.clicked()) {
+      uiElement.onClick();
     }
   }
 }
@@ -133,10 +125,14 @@ void DrawPixels() {
   }
 }
 
+void SetDrawColour(color col) {
+  currDrawColour = col;
+}
+
 boolean OverUIElements(UI[] uiElements) {
   boolean over = false;
   for (UI ui : uiElements) {
-    if (ui.OverUI()) {
+    if (ui.overUI()) {
       over = true;
     }
   }
@@ -205,7 +201,7 @@ public class UI
 {
   Rect rect;
 
-  public boolean OverUI() {
+  public boolean overUI() {
     boolean over = false;
     if (mouseX < rect.position.x + rect.scale.x && mouseX > rect.position.x) {
       if (mouseY < rect.position.y + rect.scale.y && mouseY > rect.position.y) {
@@ -215,7 +211,31 @@ public class UI
     return over;
   }
 
-  public void OnClick() {
+  boolean mouseDown = false;
+  public boolean clicked() {
+    if (overUI()) {
+      if (mousePressed) { 
+        if (mouseButton == LEFT) {
+          mouseDown = true;
+        }
+      } else {
+        if (mouseDown) {
+          mouseDown = false;
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public void onClick() {
+  }
+
+  public void drawUIElement() {
+    stroke(255);
+    strokeWeight(2);
+    fill(0);
+    rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
   }
 }
 
@@ -228,8 +248,15 @@ public class ColourButton extends UI {
     this.buttonCol = buttonCol;
   }
 
-  public  void OnClick() {
-    println("CLICKED");
+  public void onClick() {
+    println("Clicked Colour Button");
+  }
+
+  public void drawUIElement() {
+    stroke(255);
+    strokeWeight(2);
+    fill(buttonCol);
+    rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
   }
 }
 
@@ -237,5 +264,29 @@ public class ColourPicker extends UI {
   public ColourPicker(Rect rect) 
   {
     this.rect = rect;
+  }
+
+  public void onClick() {
+    println("Clicked colour picker");
+    SetDrawColour(get(mouseX, mouseY));
+  }
+
+  public void drawUIElement() {
+    stroke(255);
+    strokeWeight(2);
+    fill(0);
+    rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+
+    //Draw coloured pixels
+    //fade from red to blue, left to right
+    //Fade from white to black, top to bottom
+    noStroke();
+    PVector scaling = new PVector(255/rect.scale.x, 255/rect.scale.y);
+    for (int x = 1; x < rect.scale.x; x++) {
+      for (int y=1; y < rect.scale.y; y++) {
+        fill((x * scaling.x)+(y * scaling.x)/2%2, (rect.scale.x * scaling.x)-(y * scaling.x), (x * scaling.x) %2);
+        square(rect.position.x + x, rect.position.y + y, 1);
+      }
+    }
   }
 }
