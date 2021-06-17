@@ -129,6 +129,18 @@ void SetDrawColour(color col) {
   currDrawColour = col;
 }
 
+UI[] getUIType(Class<? extends UI> uiClass) {  
+  ArrayList<UI> uiTypeList = new ArrayList<UI>();
+
+  for (UI uiElement : ui) {
+    if (uiClass.isInstance(uiElement)) {
+      uiTypeList.add(uiElement);
+    }
+  }
+
+  return uiTypeList.toArray(new UI[uiTypeList.size()]);
+}
+
 boolean OverUIElements(UI[] uiElements) {
   boolean over = false;
   for (UI ui : uiElements) {
@@ -261,6 +273,8 @@ public class ColourButton extends UI {
 }
 
 public class ColourPicker extends UI {
+  boolean open = false;
+
   public ColourPicker(Rect rect) 
   {
     this.rect = rect;
@@ -271,21 +285,32 @@ public class ColourPicker extends UI {
     SetDrawColour(get(mouseX, mouseY));
   }
 
-  public void drawUIElement() {
-    stroke(255);
-    strokeWeight(2);
-    fill(0);
-    rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+  public void Open() {
+    drawUIElement();
+  }
+  public void Close() {
+    open = false;
+  }
 
-    //Draw coloured pixels
-    //fade from red to blue, left to right
-    //Fade from white to black, top to bottom
-    noStroke();
-    PVector scaling = new PVector(255/rect.scale.x, 255/rect.scale.y);
-    for (int x = 1; x < rect.scale.x; x++) {
-      for (int y=1; y < rect.scale.y; y++) {
-        fill((x * scaling.x)+(y * scaling.x)/2%2, (rect.scale.x * scaling.x)-(y * scaling.x), (x * scaling.x) %2);
-        square(rect.position.x + x, rect.position.y + y, 1);
+  public void drawUIElement() {
+    if (!open) {
+      open = true;
+
+      stroke(255);
+      strokeWeight(2);
+      fill(0);
+      rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+
+      //Draw coloured pixels
+      //fade from red to blue, left to right
+      //Fade from white to black, top to bottom
+      noStroke();
+      PVector scaling = new PVector(255/rect.scale.x, 255/rect.scale.y);
+      for (int x = 1; x < rect.scale.x; x++) {
+        for (int y=1; y < rect.scale.y; y++) {
+          fill((x * scaling.x)+(y * scaling.x)/2%2, (rect.scale.x * scaling.x)-(y * scaling.x), (x * scaling.x) %2);
+          square(rect.position.x + x, rect.position.y + y, 1);
+        }
       }
     }
   }
