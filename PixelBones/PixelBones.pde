@@ -145,7 +145,9 @@ boolean OverUIElements(UI[] uiElements) {
   boolean over = false;
   for (UI ui : uiElements) {
     if (ui.overUI()) {
-      over = true;
+      if (ui.active) {
+        over = true;
+      }
     }
   }
   return over;
@@ -212,15 +214,19 @@ public class Rect {
 public class UI 
 {
   Rect rect;
+  boolean active = true;
 
   public boolean overUI() {
-    boolean over = false;
-    if (mouseX < rect.position.x + rect.scale.x && mouseX > rect.position.x) {
-      if (mouseY < rect.position.y + rect.scale.y && mouseY > rect.position.y) {
-        over = true;
+    if (active) {
+      boolean over = false;
+      if (mouseX < rect.position.x + rect.scale.x && mouseX > rect.position.x) {
+        if (mouseY < rect.position.y + rect.scale.y && mouseY > rect.position.y) {
+          over = true;
+        }
       }
+      return over;
     }
-    return over;
+    return false;
   }
 
   boolean mouseDown = false;
@@ -244,10 +250,12 @@ public class UI
   }
 
   public void drawUIElement() {
-    stroke(255);
-    strokeWeight(2);
-    fill(0);
-    rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+    if (active) {
+      stroke(255);
+      strokeWeight(2);
+      fill(0);
+      rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+    }
   }
 }
 
@@ -261,14 +269,16 @@ public class ColourButton extends UI {
   }
 
   public void onClick() {
-    println("Clicked Colour Button");
-    UI[] colourPickers = getUIType(ColourPicker.class);
-    for (UI cpUI : colourPickers) {
-      ColourPicker cp = (ColourPicker)cpUI;
-      if (cp.open) {
-        cp.Close();
-      } else {
-        cp.Open();
+    if (active) {
+      println("Clicked Colour Button");
+      UI[] colourPickers = getUIType(ColourPicker.class);
+      for (UI cpUI : colourPickers) {
+        ColourPicker cp = (ColourPicker)cpUI;
+        if (cp.active) {
+          cp.Close();
+        } else {
+          cp.Open();
+        }
       }
     }
   }
@@ -282,34 +292,35 @@ public class ColourButton extends UI {
 }
 
 public class ColourPicker extends UI {
-  boolean open = false;
-
+  
   public ColourPicker(Rect rect) 
   {
     this.rect = rect;
   }
 
   public void onClick() {
-    println("Clicked colour picker");
-    color newCol = get(mouseX, mouseY);
-    SetDrawColour(newCol);
-    UI[] colourButtons = getUIType(ColourButton.class);
-    for (UI cbUI : colourButtons) {
-      ColourButton cb = (ColourButton)cbUI;
-      cb.buttonCol = newCol;
+    if (active) {
+      println("Clicked colour picker");
+      color newCol = get(mouseX, mouseY);
+      SetDrawColour(newCol);
+      UI[] colourButtons = getUIType(ColourButton.class);
+      for (UI cbUI : colourButtons) {
+        ColourButton cb = (ColourButton)cbUI;
+        cb.buttonCol = newCol;
+      }
     }
   }
 
   public void Open() {
-    open = true;
+    active = true;
     drawUIElement();
   }
   public void Close() {
-    open = false;
+    active = false;
   }
 
   public void drawUIElement() {
-    if (open) {
+    if (active) {
       stroke(255);
       strokeWeight(2);
       fill(0);
