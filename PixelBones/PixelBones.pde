@@ -76,6 +76,9 @@ void UpdateUI() {
     if (uiElement.clicked()) {
       uiElement.onClick();
     }
+    if (uiElement.dragging()) {
+      uiElement.onDrag();
+    }
   }
 }
 
@@ -245,8 +248,20 @@ public class UI
     }
     return false;
   }
+  public boolean dragging() {
+    if (overUI()) {
+      if (mousePressed) { 
+        if (mouseButton == LEFT) {
+          return true;
+        }
+      }
+    } 
+    return false;
+  }
 
   public void onClick() {
+  }
+  public void onDrag() {
   }
 
   public void drawUIElement() {
@@ -292,7 +307,7 @@ public class ColourButton extends UI {
 }
 
 public class ColourPicker extends UI {
-  
+
   public ColourPicker(Rect rect) 
   {
     this.rect = rect;
@@ -301,12 +316,41 @@ public class ColourPicker extends UI {
   public void onClick() {
     if (active) {
       println("Clicked colour picker");
-      color newCol = get(mouseX, mouseY);
-      SetDrawColour(newCol);
-      UI[] colourButtons = getUIType(ColourButton.class);
-      for (UI cbUI : colourButtons) {
-        ColourButton cb = (ColourButton)cbUI;
-        cb.buttonCol = newCol;
+      if (mouseX < rect.position.x + rect.scale.x && mouseX > rect.position.x) {
+        if (mouseY < rect.position.y + (rect.scale.y * 0.9) && mouseY > rect.position.y) {
+          color newCol = get(mouseX, mouseY);
+          SetDrawColour(newCol);
+          UI[] colourButtons = getUIType(ColourButton.class);
+          for (UI cbUI : colourButtons) {
+            ColourButton cb = (ColourButton)cbUI;
+            cb.buttonCol = newCol;
+          }
+        }
+        if (mouseY < rect.position.y + rect.scale.y && mouseY > rect.position.y + (rect.scale.y * 0.9)) {
+          PVector scaling = new PVector(255/rect.scale.x, 255/(rect.scale.y*0.9));
+          h = mouseX * scaling.x - rect.position.x;
+        }
+      }
+    }
+  }
+
+  public void onDrag() {
+    if (active) {
+      println("Clicked colour picker");
+      if (mouseX < rect.position.x + rect.scale.x && mouseX > rect.position.x) {
+        if (mouseY < rect.position.y + (rect.scale.y * 0.9) && mouseY > rect.position.y) {
+          color newCol = get(mouseX, mouseY);
+          SetDrawColour(newCol);
+          UI[] colourButtons = getUIType(ColourButton.class);
+          for (UI cbUI : colourButtons) {
+            ColourButton cb = (ColourButton)cbUI;
+            cb.buttonCol = newCol;
+          }
+        }
+        if (mouseY < rect.position.y + rect.scale.y && mouseY > rect.position.y + (rect.scale.y * 0.9)) {
+          PVector scaling = new PVector(255/rect.scale.x, 255/(rect.scale.y*0.9));
+          h = mouseX * scaling.x - rect.position.x;
+        }
       }
     }
   }
@@ -319,24 +363,33 @@ public class ColourPicker extends UI {
     active = false;
   }
 
+  float h = 0;
   public void drawUIElement() {
     if (active) {
-      stroke(255);
-      strokeWeight(2);
-      fill(0);
-      rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+      PVector scaling = new PVector(255/rect.scale.x, 255/(rect.scale.y*0.9));
+      noStroke();
+      colorMode(HSB);
+      for (int x = 1; x < rect.scale.x; x++) {
+        fill(x*scaling.x, 255, 255);
+        rect(x + rect.position.x, rect.position.y + (rect.scale.y  *0.9), 1, (rect.scale.y*0.1));
+      }
 
       //Draw coloured pixels
       //fade from red to blue, left to right
       //Fade from white to black, top to bottom
-      noStroke();
-      PVector scaling = new PVector(255/rect.scale.x, 255/rect.scale.y);
       for (int x = 1; x < rect.scale.x; x++) {
-        for (int y=1; y < rect.scale.y; y++) {
-          fill((x * scaling.x)+(y * scaling.x)/2%2, (rect.scale.x * scaling.x)-(y * scaling.x), (x * scaling.x) %2);
+        for (int y=1; y < rect.scale.y * 0.9; y++) {
+          fill(h, x * scaling.x, y * scaling.y);
           square(rect.position.x + x, rect.position.y + y, 1);
         }
       }
+      colorMode(RGB);
+
+      stroke(255);
+      strokeWeight(2);
+      noFill();
+      rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+      rect(rect.position.x, rect.position.y  + (rect.scale.y * 0.9), rect.scale.x, rect.scale.y * 0.1);
     }
   }
 }
