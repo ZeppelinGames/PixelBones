@@ -1,18 +1,17 @@
 import java.util.Map;
 
 HashMap<PVector, Integer> allPixels = new HashMap<PVector, Integer>();
-PVector artSize = new PVector(16, 16);
+PVector artSize = new PVector(32, 32);
 color currDrawColour = color(0);
+
+IntList artPalette = new IntList(); //Store colours that have been used on canvas
 
 PVector cameraPos = new PVector(0, 0);
 
 int scaling = 32;
 PVector scaleBounds = new PVector(8, 128); //Min, max
 
-UI ui[] = new UI[] {
-  new ColourButton(new Rect(new PVector(25, 25), new PVector(25, 25)), color(0)), 
-  new ColourPicker(new Rect(new PVector(50, 50), new PVector(250, 250)))
-};
+ArrayList<UI> ui = new ArrayList<UI>();
 
 Mode currMode = Mode.DRAWING;
 enum Mode {
@@ -22,6 +21,13 @@ enum Mode {
 void setup() {
   size(800, 800);
   surface.setTitle("PixelBones");
+
+  LoadUI();
+}
+
+void LoadUI() {
+  ui.add(new ColourButton(new Rect(new PVector(25, 25), new PVector(25, 25)), color(0)));
+  ui.add(new ColourPicker(new Rect(new PVector(50, 50), new PVector(250, 250))));
 }
 
 void draw() {
@@ -33,12 +39,11 @@ void draw() {
     //Change colours
     //Pick brushes
     //Draw on canvas
-
     PlotPixel();
     RemovePixel();
     DrawPixels();
+    DrawArtPalette();
     UpdateUI();
-
     //Swap layers
     break;
   case RIGGING:
@@ -64,9 +69,14 @@ void DrawGrid(int gridScale) {
 
       fill(xGrid != yGrid ? gridCol : gridColAlt);
 
-      square(x +cameraPos.x, y+cameraPos.y, gridScale);
+      square(x + cameraPos.x, y + cameraPos.y, gridScale);
     }
   }
+
+  stroke(255);
+  strokeWeight(3);
+  noFill();
+  rect(cameraPos.x, cameraPos.y, artSize.x * scaling, artSize.y * scaling);
 }
 
 void UpdateUI() {
@@ -85,7 +95,7 @@ void UpdateUI() {
 void PlotPixel() {
   if (mousePressed) {
     if (mouseButton == LEFT) {
-      if (!OverUIElements(ui)) {
+      if (!OverUIElements(ui.toArray(new UI[ui.size()]))) {
         PVector pixelPos = new PVector(int((mouseX - cameraPos.x) / scaling), int((mouseY - cameraPos.y) / scaling));
 
         if (pixelPos.x >= 0 && pixelPos.y >= 0) { 
@@ -101,6 +111,10 @@ void PlotPixel() {
                 allPixels.replace(pixelPos, currDrawColour);
               }
             }
+
+            if (!artPalette.hasValue(currDrawColour)) {
+              artPalette.append(currDrawColour);
+            }
           }
         }
       }
@@ -113,7 +127,22 @@ void RemovePixel() {
     if (mouseButton == RIGHT) {
       PVector pixelPos = new PVector(int((mouseX - cameraPos.x) / scaling), int((mouseY - cameraPos.y) / scaling));
       if (allPixels.containsKey(pixelPos)) {
+        color pixelCol = allPixels.get(pixelPos);
         allPixels.remove(pixelPos);
+
+        //Remove colour from art palette if none are left
+        boolean hasColour = false;
+        for (Map.Entry<PVector, Integer> p : allPixels.entrySet()) {
+          if (!hasColour) {
+            if (p.getValue() == pixelCol) {
+              hasColour = true;
+            }
+          }
+        }
+
+        if (!hasColour) {
+          artPalette.removeValue(pixelCol);
+        }
       }
     }
   }
@@ -125,6 +154,24 @@ void DrawPixels() {
     PVector drawPos = new PVector(p.getKey().x * scaling, p.getKey().y * scaling);
     fill(p.getValue());
     square(drawPos.x + cameraPos.x, drawPos.y + cameraPos.y, scaling);
+  }
+}
+
+void DrawArtPalette() {
+  int x = 0;
+  int y=0;
+  for (int n =0; n < artPalette.size(); n++) {
+    fill(artPalette.get(n));
+    stroke(255);
+    square(25 + (x*25), 75 + (y * 25), 25);
+
+    //Add palette button to UI
+
+    x++;
+    if (x >= 4) {
+      x=0; 
+      y++;
+    }
   }
 }
 
@@ -296,6 +343,27 @@ public class ColourButton extends UI {
         }
       }
     }
+  }
+
+  public void drawUIElement() {
+    stroke(255);
+    strokeWeight(2);
+    fill(buttonCol);
+    rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
+  }
+}
+
+public class PaletteButton extends UI {
+  color buttonCol;
+
+  public PaletteButton(Rect rect, color buttonCol) 
+  {
+    this.rect = rect;
+    this.buttonCol = buttonCol;
+  }
+
+  public void onClick() {
+    currDrawColour = buttonCol;
   }
 
   public void drawUIElement() {
