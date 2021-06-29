@@ -11,7 +11,12 @@ PVector cameraPos = new PVector(0, 0);
 int scaling = 32;
 PVector scaleBounds = new PVector(8, 128); //Min, max
 
-ArrayList<UI> ui = new ArrayList<UI>();
+ArrayList<UI> persistantUI = new ArrayList<UI>();
+ArrayList<UI> drawingUI = new ArrayList<UI>();
+ArrayList<UI> riggingUI = new ArrayList<UI>();
+ArrayList<UI> posingUI = new ArrayList<UI>();
+
+ArrayList<UI> currUI = new ArrayList<UI>();
 
 Mode currMode = Mode.DRAWING;
 enum Mode {
@@ -23,11 +28,16 @@ void setup() {
   surface.setTitle("PixelBones");
 
   LoadUI();
+  SetMode(Mode.DRAWING);
 }
 
 void LoadUI() {
-  ui.add(new ColourButton(new Rect(new PVector(25, 25), new PVector(25, 25)), color(0)));
-  ui.add(new ColourPicker(new Rect(new PVector(50, 50), new PVector(250, 250))));
+  drawingUI.add(new ColourButton(new Rect(new PVector(25, 50), new PVector(25, 25)), color(0)));
+  drawingUI.add(new ColourPicker(new Rect(new PVector(50, 75), new PVector(250, 250))));
+
+  persistantUI.add(new ModeButton(new Rect(new PVector(60, 25), new PVector(25, 25)), Mode.DRAWING));
+  persistantUI.add(new ModeButton(new Rect(new PVector(85, 25), new PVector(25, 25)), Mode.RIGGING));
+  persistantUI.add(new ModeButton(new Rect(new PVector(110, 25), new PVector(25, 25)), Mode.POSING));
 }
 
 void draw() {
@@ -43,7 +53,6 @@ void draw() {
     RemovePixel();
     DrawPixels();
     DrawArtPalette();
-    UpdateUI();
     //Swap layers
     break;
   case RIGGING:
@@ -54,6 +63,8 @@ void draw() {
     //Move bones (and transform pixels) to pose model
     break;
   }
+
+  UpdateUI();
 }
 
 void DrawGrid(int gridScale) {
@@ -80,11 +91,13 @@ void DrawGrid(int gridScale) {
 }
 
 void UpdateUI() {
-  for (UI uiElement : ui) {
+  println("Drawing " + currUI.size() + " UI elements");
+  for (UI uiElement : currUI) {
     uiElement.drawUIElement();
 
     if (uiElement.clicked()) {
       uiElement.onClick();
+      return;
     }
     if (uiElement.dragging()) {
       uiElement.onDrag();
@@ -95,7 +108,7 @@ void UpdateUI() {
 void PlotPixel() {
   if (mousePressed) {
     if (mouseButton == LEFT) {
-      if (!OverUIElements(ui.toArray(new UI[ui.size()]))) {
+      if (!OverUIElements(currUI.toArray(new UI[currUI.size()]))) {
         PVector pixelPos = new PVector(int((mouseX - cameraPos.x) / scaling), int((mouseY - cameraPos.y) / scaling));
 
         if (pixelPos.x >= 0 && pixelPos.y >= 0) { 
@@ -167,8 +180,8 @@ void DrawArtPalette() {
 
     //Add palette button to UI
     PaletteButton pb = new PaletteButton(new Rect(new PVector(25 + (x*25), 75 + (y*25)), new PVector(25, 25)), artPalette.get(n));
-    if (!ui.contains(pb)) {
-      ui.add(pb);
+    if (!currUI.contains(pb)) {
+      currUI.add(pb);
     }
 
     x++;
@@ -183,10 +196,28 @@ void SetDrawColour(color col) {
   currDrawColour = col;
 }
 
+void SetMode(Mode newMode) {
+  currUI.clear();
+
+  currUI.addAll(persistantUI);
+
+  if (newMode == Mode.DRAWING) {
+    currUI.addAll(drawingUI);
+  }
+  if (newMode == Mode.RIGGING) {
+    currUI.addAll(riggingUI);
+  }
+  if (newMode == Mode.POSING) {
+    currUI.addAll(posingUI);
+  }
+
+  currMode = newMode;
+}
+
 UI[] getUIType(Class<? extends UI> uiClass) {  
   ArrayList<UI> uiTypeList = new ArrayList<UI>();
 
-  for (UI uiElement : ui) {
+  for (UI uiElement : currUI) {
     if (uiClass.isInstance(uiElement)) {
       uiTypeList.add(uiElement);
     }
@@ -325,6 +356,22 @@ public class UI
   }
 }
 
+public class ModeButton extends UI {
+  Mode changeMode;
+
+  public ModeButton(Rect rect, Mode changeMode) {
+    this.rect = rect;
+    this.changeMode = changeMode;
+  }
+
+  public void onClick() {
+    if (active) {
+      println("Clicked mode button");
+      SetMode(changeMode);
+    }
+  }
+}
+
 public class ColourButton extends UI {
   color buttonCol;
 
@@ -450,8 +497,7 @@ public class ColourPicker extends UI {
       }
 
       //Draw coloured pixels
-      //fade from red to blue, left to right
-      //Fade from white to black, top to bottom
+      //Fade from black to white, top to bottom
       for (int x = 1; x < rect.scale.x; x++) {
         for (int y=1; y < rect.scale.y * 0.9; y++) {
           fill(h, x * scaling.x, y * scaling.y);
