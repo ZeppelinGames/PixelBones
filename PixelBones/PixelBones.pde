@@ -163,9 +163,13 @@ void DrawArtPalette() {
   for (int n =0; n < artPalette.size(); n++) {
     fill(artPalette.get(n));
     stroke(255);
-    square(25 + (x*25), 75 + (y * 25), 25);
+    //square(25 + (x*25), 75 + (y * 25), 25);
 
     //Add palette button to UI
+    PaletteButton pb = new PaletteButton(new Rect(new PVector(25 + (x*25), 75 + (y*25)), new PVector(25, 25)), artPalette.get(n));
+    if (!ui.contains(pb)) {
+      ui.add(pb);
+    }
 
     x++;
     if (x >= 4) {
@@ -348,7 +352,8 @@ public class ColourButton extends UI {
   public void drawUIElement() {
     stroke(255);
     strokeWeight(2);
-    fill(buttonCol);
+    buttonCol = currDrawColour;
+    fill(currDrawColour);
     rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
   }
 }
@@ -363,7 +368,14 @@ public class PaletteButton extends UI {
   }
 
   public void onClick() {
-    currDrawColour = buttonCol;
+    if (active) {
+      if (mouseX < rect.position.x + rect.scale.x && mouseX > rect.position.x) {
+        if (mouseY < rect.position.y + (rect.scale.y * 0.9) && mouseY > rect.position.y) {
+          println("Set new draw col " + buttonCol); 
+          SetDrawColour(buttonCol);
+        }
+      }
+    }
   }
 
   public void drawUIElement() {
@@ -388,11 +400,6 @@ public class ColourPicker extends UI {
         if (mouseY < rect.position.y + (rect.scale.y * 0.9) && mouseY > rect.position.y) {
           color newCol = get(mouseX, mouseY);
           SetDrawColour(newCol);
-          UI[] colourButtons = getUIType(ColourButton.class);
-          for (UI cbUI : colourButtons) {
-            ColourButton cb = (ColourButton)cbUI;
-            cb.buttonCol = newCol;
-          }
         }
         if (mouseY < rect.position.y + rect.scale.y && mouseY > rect.position.y + (rect.scale.y * 0.9)) {
           PVector scaling = new PVector(255/rect.scale.x, 255/(rect.scale.y*0.9));
