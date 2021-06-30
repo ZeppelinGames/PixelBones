@@ -1,16 +1,23 @@
 import java.util.Map;
 
-HashMap<PVector, Integer> allPixels = new HashMap<PVector, Integer>();
-PVector artSize = new PVector(32, 32);
-color currDrawColour = color(0);
+//Camera
+PVector cameraPos = new PVector(0, 0);
+int scaling = 16; //Scaling of pixels (zoom)
+PVector scaleBounds = new PVector(8, 128); //Min, max of scaling/zoom
 
+//Pixels (Drawing mode)
+HashMap<PVector, Integer> allPixels = new HashMap<PVector, Integer>(); //Store drawn pixels
 IntList artPalette = new IntList(); //Store colours that have been used on canvas
 
-PVector cameraPos = new PVector(0, 0);
+//Art settings
+PVector artSize = new PVector(32, 32); //Size of the workspace to draw on
+color currDrawColour = color(0); //Current drawing colour
 
-int scaling = 32;
-PVector scaleBounds = new PVector(8, 128); //Min, max
+//Bones (Rigging mode)
+ArrayList<Bone> bones = new ArrayList<Bone>();
+float boneNodeSize = 0.25;
 
+//UI
 ArrayList<UI> persistantUI = new ArrayList<UI>();
 ArrayList<UI> drawingUI = new ArrayList<UI>();
 ArrayList<UI> riggingUI = new ArrayList<UI>();
@@ -18,6 +25,7 @@ ArrayList<UI> posingUI = new ArrayList<UI>();
 
 ArrayList<UI> currUI = new ArrayList<UI>();
 
+//Game state
 Mode currMode = Mode.DRAWING;
 enum Mode {
   DRAWING, RIGGING, POSING
@@ -56,8 +64,11 @@ void draw() {
     //Swap layers
     break;
   case RIGGING:
-    //Add and connect bones
-    //Select and assign groups of pixels for each bone
+    DrawPixels();
+    EditBones();
+    DrawBones();
+    //Add/remove bones
+    //Select pixels to assign to bone
     break;
   case POSING:
     //Move bones (and transform pixels) to pose model
@@ -91,7 +102,6 @@ void DrawGrid(int gridScale) {
 }
 
 void UpdateUI() {
-  println("Drawing " + currUI.size() + " UI elements");
   for (UI uiElement : currUI) {
     uiElement.drawUIElement();
 
@@ -196,6 +206,44 @@ void SetDrawColour(color col) {
   currDrawColour = col;
 }
 
+void EditBones() {
+  if (mousePressed) {
+    PVector bonePos = new PVector((int)((mouseX - cameraPos.x) / scaling) + 0.5, (int)((mouseY - cameraPos.y) / scaling) + 0.5);
+    if (mouseButton == LEFT) {
+      if (!hasBoneAtPos(bonePos)) {
+        println("added bone");
+        bones.add(new Bone(bonePos));
+      }
+    }
+    if (mouseButton == RIGHT) {
+      if (hasBoneAtPos(bonePos)) {
+        println("Has bone");
+        Bone boneAtPos = getBoneAtPos(bonePos);
+        if (boneAtPos != null) {
+          println("removed bone");
+          bones.remove(boneAtPos);
+        }
+      }
+    }
+  }
+}
+
+void DrawBones() {
+  noStroke();
+  for (Bone b : bones) {
+    PVector boneDrawPos = new PVector(b.bonePos.x * scaling + cameraPos.x, b.bonePos.y * scaling + cameraPos.y);
+    fill(255);
+    if (b.connectedBone != null) {
+      PVector connDrawPos = new PVector(b.connectedBone.bonePos.x * scaling + cameraPos.x, b.connectedBone.bonePos.y * scaling + cameraPos.y);
+      line(boneDrawPos.x, boneDrawPos.y, connDrawPos.x, connDrawPos.y);
+    }
+    stroke(255);
+    strokeWeight(1);
+    fill(0, 255, 0);
+    circle(boneDrawPos.x, boneDrawPos.y, boneNodeSize * scaling);
+  }
+}
+
 void SetMode(Mode newMode) {
   currUI.clear();
 
@@ -212,6 +260,24 @@ void SetMode(Mode newMode) {
   }
 
   currMode = newMode;
+}
+
+boolean hasBoneAtPos(PVector pos) {
+  for (Bone b : bones) {
+    if (PVector.dist(b.bonePos, pos) < 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Bone getBoneAtPos(PVector pos) {
+  for (Bone b : bones) {
+    if (PVector.dist(b.bonePos, pos) < 1) {
+      return b;
+    }
+  }
+  return null;
 }
 
 UI[] getUIType(Class<? extends UI> uiClass) {  
@@ -512,5 +578,15 @@ public class ColourPicker extends UI {
       rect(rect.position.x, rect.position.y, rect.scale.x, rect.scale.y);
       rect(rect.position.x, rect.position.y  + (rect.scale.y * 0.9), rect.scale.x, rect.scale.y * 0.1);
     }
+  }
+}
+
+public class Bone {
+  PVector bonePos;
+  ArrayList<PVector> assignedPixels = new ArrayList<PVector>();
+  Bone connectedBone;
+
+  public Bone(PVector bonePos) {
+    this.bonePos = bonePos;
   }
 }
