@@ -27,8 +27,14 @@ ArrayList<UI> currUI = new ArrayList<UI>();
 
 //Game state
 Mode currMode = Mode.DRAWING;
+RiggingTool currRiggingTool = RiggingTool.MODIFYING;
+
 enum Mode {
   DRAWING, RIGGING, POSING
+}
+
+enum RiggingTool {
+  MODIFYING /*Adding, removing, moving*/, LINKING /*Connecting bones together*/, ASSIGNING /*Assigning pixels to bones*/
 }
 
 void setup() {
@@ -64,7 +70,7 @@ void draw() {
     //Swap layers
     break;
   case RIGGING:
-    DrawPixels();
+    DrawPixels(0.5);
     EditBones();
     DrawBones();
     //Add/remove bones
@@ -179,17 +185,28 @@ void DrawPixels() {
     square(drawPos.x + cameraPos.x, drawPos.y + cameraPos.y, scaling);
   }
 }
+void DrawPixels(float a) {
+  noStroke();
+  for (Map.Entry<PVector, Integer> p : allPixels.entrySet()) {
+    PVector drawPos = new PVector(p.getKey().x * scaling, p.getKey().y * scaling);
+    color drawCol = p.getValue();
+    //( (1-p)R1 + p*R2, (1-p)*G1 + p*G2, (1-p)*B1 + p*B2) | Fake transparency, gray underneath (127)
+    drawCol = color((1-a) * red(drawCol) + (a * 127), (1-a) * green(drawCol) + (a * 127), ((1-a) * blue(drawCol)) + (a * 127));
+    fill(drawCol);
+    square(drawPos.x + cameraPos.x, drawPos.y + cameraPos.y, scaling);
+  }
+}
 
 void DrawArtPalette() {
   int x = 0;
-  int y=0;
+  int y = 0;
   for (int n =0; n < artPalette.size(); n++) {
     fill(artPalette.get(n));
     stroke(255);
     //square(25 + (x*25), 75 + (y * 25), 25);
 
     //Add palette button to UI
-    PaletteButton pb = new PaletteButton(new Rect(new PVector(25 + (x*25), 75 + (y*25)), new PVector(25, 25)), artPalette.get(n));
+    PaletteButton pb = new PaletteButton(new Rect(new PVector(25 + (x*25), 100 + (y*25)), new PVector(25, 25)), artPalette.get(n));
     if (!currUI.contains(pb)) {
       currUI.add(pb);
     }
