@@ -43,6 +43,8 @@ void setup() {
 
   LoadUI();
   SetMode(Mode.DRAWING);
+
+  ResetCamera();
 }
 
 void LoadUI() {
@@ -52,6 +54,13 @@ void LoadUI() {
   persistantUI.add(new ModeButton(new Rect(new PVector(60, 25), new PVector(25, 25)), Mode.DRAWING));
   persistantUI.add(new ModeButton(new Rect(new PVector(85, 25), new PVector(25, 25)), Mode.RIGGING));
   persistantUI.add(new ModeButton(new Rect(new PVector(110, 25), new PVector(25, 25)), Mode.POSING));
+}
+
+void ResetCamera() {
+  scaling = 16;
+  cameraPos = new PVector((width/2) - (artSize.x * scaling/2), (height/2) - (artSize.y * scaling/2));
+  unscaledCameraPos = cameraPos;
+  lastDragPos = new PVector(width/2, height/2);
 }
 
 void draw() {
@@ -70,7 +79,7 @@ void draw() {
     //Swap layers
     break;
   case RIGGING:
-    DrawPixels(0.5);
+    DrawPixels(0.5); //Draw pixels with 0.5 opacity
     EditBones();
     DrawBones();
     //Add/remove bones
@@ -78,6 +87,8 @@ void draw() {
     break;
   case POSING:
     //Move bones (and transform pixels) to pose model
+    DrawPixels(0.5);
+    DrawBones();
     break;
   }
 
@@ -185,6 +196,7 @@ void DrawPixels() {
     square(drawPos.x + cameraPos.x, drawPos.y + cameraPos.y, scaling);
   }
 }
+
 void DrawPixels(float a) {
   noStroke();
   for (Map.Entry<PVector, Integer> p : allPixels.entrySet()) {
@@ -223,22 +235,40 @@ void SetDrawColour(color col) {
   currDrawColour = col;
 }
 
+boolean rightDown = false;
+Bone startBone; 
 void EditBones() {
   if (mousePressed) {
     PVector bonePos = new PVector((int)((mouseX - cameraPos.x) / scaling) + 0.5, (int)((mouseY - cameraPos.y) / scaling) + 0.5);
     if (mouseButton == LEFT) {
-      if (!hasBoneAtPos(bonePos)) {
-        println("added bone");
-        bones.add(new Bone(bonePos));
+      if (keyPressed && key==CODED) {
+        if (keyCode==CONTROL) {
+          if (hasBoneAtPos(bonePos)) {
+            println("Has bone");
+            Bone boneAtPos = getBoneAtPos(bonePos);
+            if (boneAtPos != null) {
+              println("removed bone");
+              bones.remove(boneAtPos);
+            }
+          }
+        }
+      } else {
+        if (onCanvas(new PVector(mouseX, mouseY))) {
+          if (!hasBoneAtPos(bonePos)) {
+            println("added bone");
+            bones.add(new Bone(bonePos));
+          }
+        }
       }
     }
+
+    //Drag to connect bones
     if (mouseButton == RIGHT) {
-      if (hasBoneAtPos(bonePos)) {
-        println("Has bone");
-        Bone boneAtPos = getBoneAtPos(bonePos);
-        if (boneAtPos != null) {
-          println("removed bone");
-          bones.remove(boneAtPos);
+      if (!rightDown) {
+        if (hasBoneAtPos(bonePos)) {
+          println("Got start bone");
+          startBone = getBoneAtPos(bonePos);
+          rightDown = true;
         }
       }
     }
@@ -250,9 +280,11 @@ void DrawBones() {
   for (Bone b : bones) {
     PVector boneDrawPos = new PVector(b.bonePos.x * scaling + cameraPos.x, b.bonePos.y * scaling + cameraPos.y);
     fill(255);
-    if (b.connectedBone != null) {
-      PVector connDrawPos = new PVector(b.connectedBone.bonePos.x * scaling + cameraPos.x, b.connectedBone.bonePos.y * scaling + cameraPos.y);
-      line(boneDrawPos.x, boneDrawPos.y, connDrawPos.x, connDrawPos.y);
+    if (b.connectedBones.size() > 0) {
+      for (Bone cB : b.connectedBones) {
+        PVector connDrawPos = new PVector(cB.bonePos.x * scaling + cameraPos.x, cB.bonePos.y * scaling + cameraPos.y);
+        line(boneDrawPos.x, boneDrawPos.y, connDrawPos.x, connDrawPos.y);
+      }
     }
     stroke(255);
     strokeWeight(1);
@@ -277,6 +309,15 @@ void SetMode(Mode newMode) {
   }
 
   currMode = newMode;
+}
+
+boolean onCanvas(PVector pos) {
+  if (pos.x < artSize.x * scaling + cameraPos.x && pos.x > cameraPos.x) {
+    if (pos.y < artSize.y *scaling + cameraPos.y && pos.y > cameraPos.y) {
+      return true;
+    }
+  }
+  return false;
 }
 
 boolean hasBoneAtPos(PVector pos) {
@@ -321,6 +362,12 @@ boolean OverUIElements(UI[] uiElements) {
   return over;
 }
 
+void keyPressed() {
+  if (key == 'f') {
+    ResetCamera();
+  }
+}
+
 PVector lastDragPos = new PVector(0, 0);
 boolean dragging = false;
 PVector unscaledCameraPos = new PVector(0, 0);
@@ -342,6 +389,21 @@ void mouseDragged() {
 void mouseReleased() {
   if (mouseButton == CENTER) {
     dragging=false;
+  }
+
+  if (currMode == Mode.RIGGING) {
+    PVector bonePos = new PVector((int)((mouseX - cameraPos.x) / scaling) + 0.5, (int)((mouseY - cameraPos.y) / scaling) + 0.5);
+    if (mouseButton == RIGHT) {
+      if (hasBoneAtPos(bonePos)) {
+        println("Got end bone");
+        //Create connection between bones
+        Bone endBone = getBoneAtPos(bonePos);
+
+        startBone.connectedBones.add(endBone);
+        endBone.connectedBones.add(startBone);
+      }
+      rightDown = false;
+    }
   }
 }
 
@@ -601,7 +663,7 @@ public class ColourPicker extends UI {
 public class Bone {
   PVector bonePos;
   ArrayList<PVector> assignedPixels = new ArrayList<PVector>();
-  Bone connectedBone;
+  ArrayList<Bone> connectedBones = new ArrayList<Bone>();
 
   public Bone(PVector bonePos) {
     this.bonePos = bonePos;
